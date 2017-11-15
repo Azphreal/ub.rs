@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate clap;
 extern crate ub;
+extern crate rand;
+
+use rand::Rng;
 
 mod app {
     use clap::{App, Arg};
@@ -39,13 +42,19 @@ mod app {
                 Arg::with_name("runes")
                     .short("r")
                     .long("gen_runes")
-                    .long("Generate a rune page (default)"),
+                    .help("Generate a rune page (default)"),
             )
             .arg(
                 Arg::with_name("no_runes")
                     .short("R")
                     .long("no_gen_runes")
-                    .long("Don't generate a rune page"),
+                    .help("Don't generate a rune page"),
+            )
+            .arg(
+                Arg::with_name("no_skill")
+                    .short("S")
+                    .long("no_skill_order")
+                    .help("Don't generate a skill order"),
             )
     }
 }
@@ -126,7 +135,7 @@ fn main() {
 
     // Print it all.
     println!{"
- _   _ _ _   _                 _         ____
+  _   _ _ _   _                 _         ____
  | | | | | |_(_)_ __ ___   __ _| |_ ___  | __ ) _ __ __ ___   _____ _ __ _   _
  | | | | | __| | '_ ` _ \\ / _` | __/ _ \\ |  _ \\| '__/ _` \\ \\ / / _ \\ '__| | | |
  | |_| | | |_| | | | | | | (_| | ||  __/ | |_) | | | (_| |\\ V /  __/ |  | |_| |
@@ -134,12 +143,13 @@ fn main() {
                                                                          |___/
  {champ: ^78}
 
-    Map: {map: >23}    Summoners: {spells: >31}",
+  Map: {map: >25}    Summoners: {spells: >31}",
              map = String::from(map),
-             champ = String::from(champ),
+             champ = String::from(champ.clone()),
              spells = spells.0 + ", " + &spells.1};
     println!();
 
+    // Split 36 and 42.
     if !matches.is_present("no_runes") {
         let (pri, sec) = random_rune_page().expect("Unable to get rune page");
 
@@ -200,12 +210,12 @@ fn main() {
         );
 
         println!(
-            "    {item0: ^72}
-    {item1: ^72}
-    {item2: ^72}
-    {item3: ^72}
-    {item4: ^72}
-    {item5: ^72}",
+            "  {item0: ^76}
+  {item1: ^76}
+  {item2: ^76}
+  {item3: ^76}
+  {item4: ^76}
+  {item5: ^76}",
             item0 = items[0].name,
             item1 = items[1].name,
             item2 = items[2].name,
@@ -214,4 +224,35 @@ fn main() {
             item5 = items[5].name,
         );
     }
+
+    let cost = items.iter().fold(0, |acc, ref i| acc + i.cost);
+
+    println!();
+    print!("  Total cost: {cost: <21}", cost = cost.to_string() + " gold");
+
+    if !matches.is_present("no_skill") {
+        let mut rng = rand::thread_rng();
+        let mut _skills = if champ.name == "Udyr" {
+            vec!('Q', 'W', 'E', 'R')
+        } else {
+            vec!('Q', 'W', 'E')
+        };
+        let mut skills = _skills.as_mut_slice();
+
+        rng.shuffle(&mut skills);
+
+        let mut order = String::new();
+        let mut ix = 0;
+        for s in skills.iter() {
+            order.push(*s);
+            if ix < skills.len() - 1 {
+                order.push_str(" -> ");
+            }
+            ix += 1;
+        }
+
+        print!(" Skill order: {order}", order = order);
+    }
+    println!();
+    println!();
 }
