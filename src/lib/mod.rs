@@ -24,12 +24,8 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::fmt;
 
-struct Build {
-    boots: Item,
-    items: Vec<Item>,
-    max_first: char,
-    runes: (PrimaryTree, SecondaryTree),
-}
+// const BASE_PATH: &'static str = "/home/xeal/Documents/projects/ub/";
+const BASE_PATH: &str = "";
 
 #[derive(Debug)]
 pub struct Item {
@@ -66,7 +62,7 @@ impl std::clone::Clone for Item {
     fn clone(&self) -> Self {
         Item {
             name: self.name.clone(),
-            cost: self.cost.clone(),
+            cost: self.cost,
         }
     }
 }
@@ -285,7 +281,6 @@ pub fn random_rune_page() -> Result<(PrimaryTree, SecondaryTree)> {
 }
 
 fn open_json(name: &'static str) -> Result<json::Value> {
-    const BASE_PATH: &'static str = "/home/xeal/Documents/projects/ub/";
     let _path = &[BASE_PATH, "resources/", name, ".json"].concat();
     let path = Path::new(_path);
     let file = File::open(path).chain_err(|| "Unable to open file.")?;
@@ -325,14 +320,14 @@ pub fn get_summoner_spell(map: &Map) -> Result<String> {
         ($from:expr, $into:ident) => (for i in $from {$into.push(i)});
     }
 
-    let list = match map {
-        &Map::SummonersRift | &Map::TwistedTreeline => {
+    let list = match *map {
+        Map::SummonersRift | Map::TwistedTreeline => {
             let mut new_con = Vec::new();
             merge!(json_key!("common"), new_con);
             merge!(json_key!("classic"), new_con);
             new_con
         }
-        &Map::HowlingAbyss => {
+        Map::HowlingAbyss => {
             let mut new_con = Vec::new();
             merge!(json_key!("common"), new_con);
             merge!(json_key!("abyss"), new_con);
