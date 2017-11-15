@@ -1,0 +1,32 @@
+{
+    "Precision": {
+        "keystone": ["Press the Attack", "Lethal Tempo", "Fleet Footwork"],
+        "tier1": ["Overheal", "Triumph", "Presence of Mind"],
+        "tier2": ["Legend: Alacrity", "Legend: Tenacity", "Legend: Bloodline"],
+        "tier3": ["Coup de Grace", "Cut Down", "Last Stand"]
+    },
+    "Domination": {
+        "keystone": ["Electrocute", "Predator", "Dark Harvest"],
+        "tier1": ["Cheap Shot", "Taste of Blood", "Sudden Impact"],
+        "tier2": ["Zombie Ward", "Ghost Poro", "Eyeball Collection"],
+        "tier3": ["Ravenous Hunter", "Ingenious Hunter", "Relentless Hunter"]
+    },
+    "Sorcery": {
+        "keystone": ["Summon Aery", "Arcane Comet", "Phase Rush"],
+        "tier1": ["Nullifying Orb", "Manaflow Band", "The Ultimate Hat"],
+        "tier2": ["Transcendence", "Celerity", "Absolute Focus"],
+        "tier3": ["Scorch", "Waterwalk", "Gathering Storm"]
+    },
+    "Resolve": {
+        "keystone": ["Grasp of the Undying", "Aftershock", "Guardian"],
+        "tier1": ["Unflinching", "Demolish", "Font of Life"],
+        "tier2": ["Iron Skin", "Mirror Shell", "Conditioning"],
+        "tier3": ["Overgrowth", "Revitalize", "Second Wind"]
+    },
+    "Inspiration": {
+        "keystone": ["Unsealed Spellbook", "Glacial Augment", "Kleptomancy"],
+        "tier1": ["Hextech Flastraption", "Biscuit Delivery", "Perfect Timing"],
+        "tier2": ["Magical Footwear", "Future's Market", "Minion Dematerializer"],
+        "tier3": ["Cosmic Insight", "Approach Velocity", "Celestial Body"]
+    }
+}

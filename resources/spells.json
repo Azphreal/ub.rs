@@ -1,0 +1,19 @@
+{
+    "common": [
+        "Barrier",
+        "Cleanse",
+        "Exhaust",
+        "Flash",
+        "Ghost",
+        "Heal",
+        "Ignite"
+    ],
+    "classic": [
+        "Smite",
+        "Teleport"
+    ],
+    "abyss": [
+        "Clarity",
+        "Mark"
+    ]
+}
