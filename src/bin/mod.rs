@@ -95,16 +95,24 @@ fn main() {
     };
 
     // Determine champion.
-    let champ = /*match matches.value_of("champion") {
-        Some(ch) => get_champion(ch).expect("No matching champion"),
-        None =>*/ match random_champion() {
-            Ok(c) => c,
-            Err(_) => {
-                println!("Invalid value given for champion. \
-                          Remember that it's case sensitive.");
-                std::process::exit(1);
-            }
-        // }
+    // let champ = match matches.value_of("champion") {
+    //     Some(ch) => get_champion(ch).expect("No matching champion"),
+    //     None => match random_champion() {
+    //         Ok(c) => c,
+    //         Err(_) => {
+    //             println!("Invalid value given for champion. \
+    //                       Remember that it's case sensitive.");
+    //             std::process::exit(1)
+    //         }
+    //     },
+    // };
+    let champ = match random_champion() {
+        Ok(c) => c,
+        Err(_) => {
+            println!("Invalid value given for champion. \
+                      Remember that it's case sensitive.");
+            std::process::exit(1)
+        }
     };
 
     let mut items = Vec::new();
@@ -225,30 +233,29 @@ fn main() {
         );
     }
 
-    let cost = items.iter().fold(0, |acc, ref i| acc + i.cost);
+    let cost = items.iter().fold(0, |acc, i| acc + i.cost);
 
     println!();
     print!("  Total cost: {cost: <21}", cost = cost.to_string() + " gold");
 
     if !matches.is_present("no_skill") {
         let mut rng = rand::thread_rng();
-        let mut _skills = if champ.name == "Udyr" {
+        let mut _skills = // if champ.name == "Udyr" {
             vec!('Q', 'W', 'E', 'R')
-        } else {
-            vec!('Q', 'W', 'E')
-        };
+        // } else {
+        //     vec!('Q', 'W', 'E')
+        // };
+            ;
         let mut skills = _skills.as_mut_slice();
 
         rng.shuffle(&mut skills);
 
         let mut order = String::new();
-        let mut ix = 0;
-        for s in skills.iter() {
+        for (ix, s) in skills.iter().enumerate() {
             order.push(*s);
             if ix < skills.len() - 1 {
                 order.push_str(" -> ");
             }
-            ix += 1;
         }
 
         print!(" Skill order: {order}", order = order);
