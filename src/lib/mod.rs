@@ -89,6 +89,15 @@ impl std::convert::From<Champion> for String {
     }
 }
 
+impl std::clone::Clone for Champion {
+    fn clone(&self) -> Self {
+        Champion {
+            name: self.name.clone(),
+            title: self.title.clone(),
+        }
+    }
+}
+
 impl fmt::Display for PrimaryTree {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
