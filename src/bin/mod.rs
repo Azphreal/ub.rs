@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate clap;
-extern crate ub;
 extern crate rand;
+extern crate ub;
 
 use rand::Rng;
 
@@ -109,8 +109,10 @@ fn main() {
     let champ = match random_champion() {
         Ok(c) => c,
         Err(_) => {
-            println!("Invalid value given for champion. \
-                      Remember that it's case sensitive.");
+            println!(
+                "Invalid value given for champion. \
+                 Remember that it's case sensitive."
+            );
             std::process::exit(1)
         }
     };
@@ -152,9 +154,9 @@ fn main() {
  {champ: ^78}
 
   Map: {map: >25}    Summoners: {spells: >31}",
-             map = String::from(map),
-             champ = String::from(champ.clone()),
-             spells = spells.0 + ", " + &spells.1};
+                map = String::from(map),
+                champ = String::from(champ.clone()),
+                spells = spells.0 + ", " + &spells.1};
     println!();
 
     // Split 36 and 42.
@@ -212,10 +214,7 @@ fn main() {
 
         // Can't on Windows.
         #[cfg(windows)]
-        println!(
-            "   {itemt: ^72}",
-            itemt = "Items",
-        );
+        println!("   {itemt: ^72}", itemt = "Items",);
 
         println!(
             "  {item0: ^76}
@@ -236,7 +235,10 @@ fn main() {
     let cost = items.iter().fold(0, |acc, i| acc + i.cost);
 
     println!();
-    print!("  Total cost: {cost: <21}", cost = cost.to_string() + " gold");
+    print!(
+        "  Total cost: {cost: <21}",
+        cost = cost.to_string() + " gold"
+    );
 
     if !matches.is_present("no_skill") {
         let mut rng = rand::thread_rng();
