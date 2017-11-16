@@ -16,6 +16,32 @@ It takes into account the following when deciding a build:
 
 All of the program's runtime data is stored in JSON files in the resources folder. This makes it easily updatable when item costs are changed or new champions are added.
 
+# Sample output
+
+```
+  _   _ _ _   _                 _         ____
+ | | | | | |_(_)_ __ ___   __ _| |_ ___  | __ ) _ __ __ ___   _____ _ __ _   _
+ | | | | | __| | '_ ` _ \ / _` | __/ _ \ |  _ \| '__/ _` \ \ / / _ \ '__| | | |
+ | |_| | | |_| | | | | | | (_| | ||  __/ | |_) | | | (_| |\ V /  __/ |  | |_| |
+  \___/|_|\__|_|_| |_| |_|\__,_|\__\___| |____/|_|  \__,_| \_/ \___|_|   \__, |
+                                                                         |___/
+                            Fiora, the Grand Duelist
+
+  Map:           Summoner's Rift    Summoners:                   Cleanse, Heal
+
+                Items                                 Runes
+  Sorcerer's Shoes                    PRECISION                   DOMINATION
+  Lord Dominik's Regards            Lethal Tempo
+  Luden's Echo                      Triumph                         Ghost Poro
+  Knight's Vow                      Legend: Tenacity                Cheap Shot
+  Adaptive Helm                     Coup de Grace
+  Rabadon's Deathcap
+
+  Total cost: 15700 gold            Max first: Q
+
+```
+
+
 # Usage
 
 Extremely simple. `./ub` or `ub.exe` to get a fully random build.
