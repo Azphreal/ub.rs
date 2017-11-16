@@ -5,7 +5,7 @@ extern crate rand;
 extern crate serde;
 extern crate serde_json as json;
 
-mod err {
+pub mod err {
     error_chain! {
         foreign_links {
             Io(::std::io::Error);
@@ -36,6 +36,7 @@ pub struct Item {
 pub struct Champion {
     pub name: String,
     pub title: String,
+    pub range: String,
 }
 
 pub struct PrimaryTree {
@@ -90,6 +91,7 @@ impl std::clone::Clone for Champion {
         Champion {
             name: self.name.clone(),
             title: self.title.clone(),
+            range: self.range.clone(),
         }
     }
 }
@@ -155,11 +157,12 @@ pub fn random_champion() -> Result<Champion> {
     Ok(Champion {
         name: String::from(champ["name"].as_str().unwrap()),
         title: String::from(champ["title"].as_str().unwrap()),
+        range: String::from(champ["range"].as_str().unwrap()),
     })
 }
 
 /// Returns a list of random items guarenteed to be different.
-pub fn random_items(map: &Map, number: usize, include_jungle: bool) -> Result<Vec<Item>> {
+pub fn random_items(map: &Map, number: usize, extra: &String, include_jungle: bool) -> Result<Vec<Item>> {
     let json = open_json("items").chain_err(|| "Failed to open items file.")?;
 
     macro_rules! json_key {
@@ -182,6 +185,16 @@ pub fn random_items(map: &Map, number: usize, include_jungle: bool) -> Result<Ve
             merge!(json_key!("classic"), new_con);
             merge!(json_key!(mer), new_con);
 
+            match extra.as_str() {
+                "melee" => merge!(json_key!("melee"), new_con),
+                "ranged" => merge!(json_key!("ranged"), new_con),
+                "hybrid" => {
+                    merge!(json_key!("melee"), new_con);
+                    merge!(json_key!("ranged"), new_con);
+                },
+                _ => ()
+            }
+
             let mut rng = rand::thread_rng();
             new_con.push(rng.choose(json_key!("support").as_slice()).unwrap());
             if include_jungle {
@@ -194,6 +207,17 @@ pub fn random_items(map: &Map, number: usize, include_jungle: bool) -> Result<Ve
             let mut new_con = Vec::new();
             merge!(json_key!("common"), new_con);
             merge!(json_key!("abyss"), new_con);
+
+            match extra.as_str() {
+                "melee" => merge!(json_key!("melee"), new_con),
+                "ranged" => merge!(json_key!("ranged"), new_con),
+                "hybrid" => {
+                    merge!(json_key!("melee"), new_con);
+                    merge!(json_key!("ranged"), new_con);
+                },
+                _ => ()
+            }
+
             new_con
         }
     };
@@ -218,13 +242,30 @@ pub fn random_items(map: &Map, number: usize, include_jungle: bool) -> Result<Ve
     Ok(items)
 }
 
-/// Returns a single random item from a given category. Primarily to be used for
-/// the boots item.
+/// Returns a single random item from a given category. Used primarily for boots, jungle, and special items.
 pub fn random_item_from_category(cat: &'static str) -> Result<Item> {
+    if cat == "special" || cat == "Viktor" || cat == "Ornn" {
+        return Err("Special items aren't supported. Try `random_special_item()`".into())
+    }
+
     let json = open_json("items").chain_err(|| "Failed to open items file.")?;
     let list = json[cat]
         .as_array()
-        // .chain_err(|| &format!("Category doesn't exist: {}", cat))?;
+        .chain_err(|| "Category doesn't exist")?;
+
+    let mut rng = rand::thread_rng();
+    let item = rng.choose(list.as_slice())
+        .chain_err(|| "Nothing to choose")?;
+    Ok(Item {
+        name: String::from(item["name"].as_str().chain_err(|| "Not a string")?),
+        cost: item["cost"].as_u64().chain_err(|| "Not a u64")?,
+    })
+}
+
+pub fn random_item_from_special(cat: &'static str) -> Result<Item> {
+    let json = open_json("items").chain_err(|| "Failed to open items file.")?;
+    let list = json["special"][cat]
+        .as_array()
         .chain_err(|| "Category doesn't exist")?;
 
     let mut rng = rand::thread_rng();
@@ -304,13 +345,14 @@ pub fn get_champion(name: &'static str) -> Result<Champion> {
             return Ok(Champion {
                 name: String::from(name),
                 title: String::from(champ["title"].as_str().unwrap()),
+                range: String::from(champ["range"].as_str().unwrap())
             });
         }
     }
     Err(format!("No champion named {}", name).into())
 }
 
-pub fn get_summoner_spell(map: &Map) -> Result<String> {
+pub fn random_summoner_spell(map: &Map) -> Result<String> {
     let json = open_json("spells").chain_err(|| "Failed to open spells file.")?;
 
     macro_rules! json_key {
@@ -348,8 +390,6 @@ mod tests {
 
     #[test]
     fn it_works() {
-        // random_items(Map::SummonersRift, 5).expect("Didn't work.");
-        // random_rune_page();
         panic!();
     }
 }

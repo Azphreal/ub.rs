@@ -2,6 +2,8 @@
 extern crate clap;
 extern crate rand;
 extern crate ub;
+#[macro_use]
+extern crate error_chain;
 
 use rand::Rng;
 
@@ -59,9 +61,35 @@ mod app {
     }
 }
 
-use ub::*;
+mod err {
+    error_chain! {
+        foreign_links {
+            UbLib(::ub::err::Error);
+        }
+        errors {}
+    }
+}
 
-fn main() {
+use ub::*;
+use err::*;
+
+macro_rules! summoner {
+    ($map:ident) => (random_summoner_spell(&$map).chain_err(|| "Unable to get summoner spell")?);
+}
+
+macro_rules! item_from {
+    ($cat:expr) => (random_item_from_category($cat).chain_err(|| ["Unable to get ", $cat].concat())?);
+}
+
+macro_rules! special {
+    ($cat:expr) => (random_item_from_special($cat).chain_err(|| ["Unable to get ", $cat, " item"].concat())?);
+}
+
+macro_rules! random_slice {
+    ($map:ident, $n:expr, $extra:expr, $jung:expr) => (random_items(&$map, $n, $extra, $jung).chain_err(|| "Unable to get random items")?.as_slice());
+}
+
+fn run() -> Result<()> {
     let matches = app::app().get_matches();
 
     // Determine map. Default to Summoner's Rift.
@@ -83,13 +111,15 @@ fn main() {
     };
 
     // Determine spells.
-    let _spell1 = get_summoner_spell(&map).expect("Unable to get summoner spell");
-    let spells = if matches.is_present("jungle") {
-        (String::from("Smite"), _spell1)
+    let _spell1 = if matches.is_present("jungle") {
+        String::from("Smite")
     } else {
-        let mut _spell2 = get_summoner_spell(&map).expect("Unable to get summoner spell");
+        summoner!(map)
+    };
+    let spells =  {
+        let mut _spell2 = summoner!(map);
         while _spell1 == _spell2 {
-            _spell2 = get_summoner_spell(&map).expect("Unable to get summoner spell");
+            _spell2 = summoner!(map);
         }
         (_spell1, _spell2)
     };
@@ -106,42 +136,41 @@ fn main() {
     //         }
     //     },
     // };
-    let champ = match random_champion() {
-        Ok(c) => c,
-        Err(_) => {
-            println!(
-                "Invalid value given for champion. \
-                 Remember that it's case sensitive."
-            );
-            std::process::exit(1)
-        }
-    };
+
+    let champ = random_champion()
+        .chain_err(|| "Invalid value for champion. \
+                       Remember that it's case sensitive.")?;
 
     let mut items = Vec::new();
 
-    items.push(random_item_from_category("boots").expect("Unable to get boots"));
+    // Set up base items based on the champion.
+    match champ.name.as_str() {
+        "Casseopeia" => (),
+        "Viktor" => {
+            items.push(item_from!("boots"));
+            items.push(special!("Viktor"));
+        },
+        "Ornn" => {
+            items.push(item_from!("boots"));
+            items.push(special!("Ornn"));
+        },
+        _ => items.push(item_from!("boots"))
+    }
+
+    let rem_items = 6 - items.len();
     if matches.is_present("jungle") {
-        // Force a jungle item.
-        items.push(random_item_from_category("jungle").expect("Unable to get jungle item"));
+        items.push(item_from!("jungle"));
         items.extend_from_slice(
-            random_items(&map, 4, false)
-                .expect("Unable to get items")
-                .as_slice(),
-        );
+            random_slice!(map, rem_items - 1, &champ.range, false));
     } else if spells.0 == "Smite" || spells.1 == "Smite" {
-        // Include jungle items only when it's possible to build them.
         items.extend_from_slice(
-            random_items(&map, 5, true)
-                .expect("Unable to get items")
-                .as_slice(),
-        );
+            random_slice!(map, rem_items, &champ.range, true));
     } else {
         items.extend_from_slice(
-            random_items(&map, 5, false)
-                .expect("Unable to get items")
-                .as_slice(),
-        );
+            random_slice!(map, rem_items, &champ.range, false));
     }
+
+    println!("{}", items.len());
 
     // Print it all.
     println!{"
@@ -264,4 +293,8 @@ fn main() {
     }
     println!();
     println!();
+
+    Ok(())
 }
+
+quick_main!(run);
