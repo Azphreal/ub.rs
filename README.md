@@ -23,10 +23,12 @@ Extremely simple. `./ub` or `ub.exe` to get a fully random build.
 Optional flags:
 
 - `-m` / `--map`: Specify a map, between one of `rift`, `abyss`, or `treeline`.
-- `-c` / `--champion`: Specify a champion, mostly for ARAM. Currently not working due to me and Rust having a disagreement. **Case- and punctuation-sensitive**. Escape those apostrophes and spaces.
+- `-c` / `--champion`: Specify a champion, mostly for ARAM. **Case- and punctuation-sensitive**; escape those apostrophes and spaces.
 - `-j` / `--force_jungle`: Force a build to be made with smite and a jungle item.
-- `-R` / `--no_runes`: Don't generate a rune page. For less fun?
+- `-R` / `--no_runes`: Don't generate a rune page.
+- `-s` / `--skills`: Pick the length of the max order. Defaults to 1.
 - `-S` / `--no_skill`: Don't generate a skill order.
+- `-t` / `--trinket`: Generate a trinket with the build.
 
 # What's currently not available
 
@@ -35,12 +37,12 @@ Optional flags:
 
 # What's currently a bit odd
 
-- Random skill order currently includes all abilities. This will be, in future, a flag to use one (default), basic, or all abilities in the order.
-- Champion specification isn't working.
+- ~~Random skill order currently includes all abilities. This will be, in future, a flag to use one (default), basic, or all abilities in the order.~~
+- ~~Champion specification isn't working.~~
 - Some champions have some special items or restrictions that aren't in place. This include:
     - ~~Viktor must have a Hex Core item.~~
     - ~~Casseopeia cannot buy boots.~~
     - Gangplank has upgrades for his ult.
-- Trinkets currently aren't generated. This is opinionated and some people believe you shouldn't have a trinket, to preserve the "no wards" playstyle of the original. However, it will be added as an option.
+- ~~Trinkets currently aren't generated. This is opinionated and some people believe you shouldn't have a trinket, to preserve the "no wards" playstyle of the original. However, it will be added as an option.~~
 - ~~Melee/ranged-only items (e.g., Sterak's Gage or Runaan's Hurricane) aren't filtered. This requires a restructure of the data format to allow and may or may not happen given my motivation.~~
 - ~~It may be possible to end up with two smites when forcing jungle.~~
