@@ -26,9 +26,7 @@
         { "name": "Gargoyle Stoneplate", "cost": 2500 },
         { "name": "Guardian Angel", "cost": 2400 },
         { "name": "Guinsoo's Rageblade", "cost": 3600 },
-        { "name": "Guinsoo's Rageblade", "cost": 3600 },
         { "name": "Hextech GLP-800", "cost": 3000 },
-        { "name": "Hextech Gunblade", "cost": 3400 },
         { "name": "Hextech Gunblade", "cost": 3400 },
         { "name": "Hextech Protobelt-01", "cost": 2500 },
         { "name": "Iceborn Gauntlet", "cost": 2700 },
@@ -46,25 +44,29 @@
         { "name": "Phantom Dancer", "cost": 2600 },
         { "name": "Randuin's Omen", "cost": 2900 },
         { "name": "Rapid Firecannon", "cost": 2600 },
-        { "name": "Ravenous Hydra", "cost": 3500 },
         { "name": "Righteous Glory", "cost": 2650 },
         { "name": "Rod of Ages", "cost": 2700 },
-        { "name": "Runaan's Hurricane", "cost": 2600 },
         { "name": "Rylai's Crystal Scepter", "cost": 2600 },
         { "name": "Spirit Visage", "cost": 2800 },
         { "name": "Statikk Shiv", "cost": 2600 },
-        { "name": "Sterak's Gage", "cost": 3200 },
         { "name": "Sunfire Cape", "cost": 2900 },
         { "name": "The Black Cleaver", "cost": 3000 },
         { "name": "The Bloodthirster", "cost": 3700 },
         { "name": "Thornmail", "cost": 2900 },
-        { "name": "Titanic Hydra", "cost": 3500 },
         { "name": "Trinity Force", "cost": 3733 },
         { "name": "Void Staff", "cost": 2650 },
         { "name": "Warmog's Armor", "cost": 2850 },
         { "name": "Wit's End", "cost": 2500 },
         { "name": "Youmuu's Ghostblade", "cost": 2900 },
         { "name": "Zeke's Convergence", "cost": 2250 }
+    ],
+    "ranged": [
+        { "name": "Runaan's Hurricane", "cost": 2600 }
+    ],
+    "melee": [
+        { "name": "Ravenous Hydra", "cost": 3500 },
+        { "name": "Sterak's Gage", "cost": 3200 },
+        { "name": "Titanic Hydra", "cost": 3500 }
     ],
     "jungle": [
         { "name": "Skirmisher's Sabre (Bloodrazor)", "cost": 2650 },
@@ -120,6 +122,8 @@
         { "name": "Wooglet's Witchcap", "cost": 3500 }
     ],
     "featured": [
+        { "name": "The Lightbringer", "cost": 2350 },
+        { "name": "Arcane Sweeper", "cost": 2150 },
         { "name": "Archangel's Staff (Quick Charge)", "cost": 3100 },
         { "name": "Manamune (Quick Charge)", "cost": 2400 },
         { "name": "Rod of Ages (Quick Charge)", "cost": 2700 }
@@ -193,19 +197,32 @@
         { "name": "Warden's Mail", "cost": 1000 },
         { "name": "Zeal", "cost": 1200 }
     ],
-    "special": [
-        { "name": "Circlet of the Iron Solari", "cost": 2700 },
-        { "name": "Forgefire Cape", "cost": 3900 },
-        { "name": "Infernal Mask", "cost": 3900 },
-        { "name": "Molten Edge", "cost": 4400 },
-        { "name": "Muramana (Quick Charge)", "cost": 0 },
-        { "name": "Muramana", "cost": 0 },
-        { "name": "Rabadon's Deathcrown", "cost": 4800 },
-        { "name": "Salvation", "cost": 2600 },
-        { "name": "Seraph's Embrace (Quick Charge)", "cost": 0 },
-        { "name": "Seraph's Embrace", "cost": 0 },
-        { "name": "The Obsidian Cleaver", "cost": 4000 },
-        { "name": "Trinity Fusion", "cost": 4733 },
-        { "name": "Wooglet's Witchcrown", "cost": 4550 }
+    "special": {
+        "ornn": [
+            { "name": "Circlet of the Iron Solari", "cost": 2700 },
+            { "name": "Forgefire Cape", "cost": 3900 },
+            { "name": "Infernal Mask", "cost": 3900 },
+            { "name": "Molten Edge", "cost": 4400 },
+            { "name": "Rabadon's Deathcrown", "cost": 4800 },
+            { "name": "Salvation", "cost": 2600 },
+            { "name": "The Obsidian Cleaver", "cost": 4000 },
+            { "name": "Trinity Fusion", "cost": 4733 },
+            { "name": "Wooglet's Witchcrown", "cost": 4550 }
+        ],
+        "victor": [
+            { "name": "Perfect Hex Core", "cost": 3000 }
+        ],
+        "other": [
+            { "name": "Muramana (Quick Charge)", "cost": 0 },
+            { "name": "Muramana", "cost": 0 },
+            { "name": "Seraph's Embrace (Quick Charge)", "cost": 0 },
+            { "name": "Seraph's Embrace", "cost": 0 }
+        ]
+    },
+    "trinket": [
+        { "name": "Farsight Alteration", "cost": 0 },
+        { "name": "Oracle Alteration", "cost": 0 },
+        { "name": "Sweeping Lens", "cost": 0 },
+        { "name": "Warding Totem", "cost": 0 }
     ]
 }
