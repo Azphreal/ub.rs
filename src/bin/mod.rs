@@ -138,22 +138,12 @@ fn run() -> Result<()> {
         (_spell1, _spell2)
     };
 
-    // Determine champion.
-    // let champ = match matches.value_of("champion") {
-    //     Some(ch) => get_champion(ch).expect("No matching champion"),
-    //     None => match random_champion() {
-    //         Ok(c) => c,
-    //         Err(_) => {
-    //             println!("Invalid value given for champion. \
-    //                       Remember that it's case sensitive.");
-    //             std::process::exit(1)
-    //         }
-    //     },
-    // };
-
-    let champ = random_champion()
-        .chain_err(|| "Invalid value for champion. \
-                       Remember that it's case sensitive.")?;
+    let champ = if let Some(c) = matches.value_of("champion") {
+        get_champion(String::from(c))
+    } else {
+        random_champion()
+    } .chain_err(|| "Invalid value for champion. \
+                     Remember that it's case sensitive.")?;
 
     let mut items = Vec::new();
 

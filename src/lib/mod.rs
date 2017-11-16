@@ -334,7 +334,7 @@ fn open_json(name: &'static str) -> Result<json::Value> {
     Ok(j)
 }
 
-pub fn get_champion(name: &'static str) -> Result<Champion> {
+pub fn get_champion(name: String) -> Result<Champion> {
     let json = open_json("champions").chain_err(|| "Failed to open champions file.")?;
     let v = json.as_array()
         .chain_err(|| "Not an array: champions")?
