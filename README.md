@@ -37,5 +37,10 @@ Optional flags:
 
 - Random skill order currently includes all abilities. This will be, in future, a flag to use one (default), basic, or all abilities in the order.
 - Champion specification isn't working.
+- Some champions have some special items or restrictions that aren't in place. This include:
+    - Viktor must have a Hex Core item.
+    - Casseopeia cannot buy boots.
+    - Gangplank has upgrades for his ult.
+- Trinkets currently aren't generated. This is opinionated and some people believe you shouldn't have a trinket, to preserve the "no wards" playstyle of the original. However, it will be added as an option.
 - Melee/ranged-only items (e.g., Sterak's Gage or Runaan's Hurricane) aren't filtered. This requires a restructure of the data format to allow and may or may not happen given my motivation.
 - It may be possible to end up with two smites when forcing jungle.
