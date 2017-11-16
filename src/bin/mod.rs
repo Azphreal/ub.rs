@@ -174,8 +174,6 @@ fn run() -> Result<()> {
             random_slice!(map, rem_items, &champ.range, false));
     }
 
-    println!("{}", items.len());
-
     // Print it all.
     println!{"
   _   _ _ _   _                 _         ____
