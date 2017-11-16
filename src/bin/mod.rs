@@ -58,6 +58,12 @@ mod app {
                     .long("no_skill_order")
                     .help("Don't generate a skill order"),
             )
+            .arg(
+                Arg::with_name("trinket")
+                    .short("t")
+                    .long("trinket")
+                    .help("Generate a trinket"),
+            )
     }
 }
 
@@ -262,6 +268,10 @@ fn run() -> Result<()> {
     }
 
     let cost = items.iter().fold(0, |acc, i| acc + i.cost);
+
+    if matches.is_present("trinket") {
+        println!("  {}", item_from!("trinket"));
+    }
 
     println!();
     print!(
