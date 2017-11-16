@@ -198,7 +198,7 @@
         { "name": "Zeal", "cost": 1200 }
     ],
     "special": {
-        "ornn": [
+        "Ornn": [
             { "name": "Circlet of the Iron Solari", "cost": 2700 },
             { "name": "Forgefire Cape", "cost": 3900 },
             { "name": "Infernal Mask", "cost": 3900 },
@@ -209,7 +209,7 @@
             { "name": "Trinity Fusion", "cost": 4733 },
             { "name": "Wooglet's Witchcrown", "cost": 4550 }
         ],
-        "victor": [
+        "Victor": [
             { "name": "Perfect Hex Core", "cost": 3000 }
         ],
         "other": [
