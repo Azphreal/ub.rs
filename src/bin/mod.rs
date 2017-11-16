@@ -53,6 +53,13 @@ mod app {
                     .help("Don't generate a rune page"),
             )
             .arg(
+                Arg::with_name("skills")
+                    .short("s")
+                    .long("skills")
+                    .help("Length of skill max order (default 1)")
+                    .takes_value(true)
+            )
+            .arg(
                 Arg::with_name("no_skill")
                     .short("S")
                     .long("no_skill_order")
@@ -71,6 +78,7 @@ mod err {
     error_chain! {
         foreign_links {
             UbLib(::ub::err::Error);
+            Int(::std::num::ParseIntError);
         }
         errors {}
     }
@@ -281,25 +289,43 @@ fn run() -> Result<()> {
 
     if !matches.is_present("no_skill") {
         let mut rng = rand::thread_rng();
-        let mut _skills = // if champ.name == "Udyr" {
-            vec!('Q', 'W', 'E', 'R')
-        // } else {
-        //     vec!('Q', 'W', 'E')
-        // };
-            ;
-        let mut skills = _skills.as_mut_slice();
 
-        rng.shuffle(&mut skills);
+        let mut skills = if champ.name.as_str() == "Udyr" {
+            vec!('Q', 'W', 'E', 'R')
+        } else if champ.name.as_str() == "Jayce" {
+            vec!('Q', 'W', 'E')
+        } else if matches.value_of("skills") == Some("4") {
+            vec!('Q', 'W', 'E', 'R')
+        } else {
+            vec!('Q', 'W', 'E')
+        };
+
+        let mut num_skills = if matches.is_present("skills") {
+            let _n = matches.value_of("skills").unwrap().parse()?;
+            if _n > 4 || _n < 0 { 1 } else { _n }
+        } else {
+            1
+        };
+
+        rng.shuffle(&mut skills.as_mut_slice());
 
         let mut order = String::new();
         for (ix, s) in skills.iter().enumerate() {
+            if num_skills == 0 {
+                break
+            }
             order.push(*s);
-            if ix < skills.len() - 1 {
+            if ix < skills.len() - 1 && num_skills > 1 {
                 order.push_str(" -> ");
             }
+            num_skills -= 1;
         }
 
-        print!(" Skill order: {order}", order = order);
+        if order.len() == 1 {
+            print!(" Max first: {}", order);
+        } else {
+            print!(" Skill order: {}", order);
+        }
     }
     println!();
     println!();
