@@ -1,21 +1,14 @@
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
 extern crate ordermap;
 extern crate rand;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde;
-extern crate serde_json as json;
+extern crate serde_json;
 
-pub mod err {
-    error_chain! {
-        foreign_links {
-            Io(::std::io::Error);
-            Json(::json::Error);
-        }
-        errors {}
-    }
-}
+use failure::{Error, ResultExt};
 
-use err::*;
 use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
 
@@ -27,18 +20,72 @@ use std::fmt;
 // const BASE_PATH: &'static str = "/home/xeal/Documents/projects/ub/";
 const BASE_PATH: &str = "";
 
-#[derive(Debug)]
-pub struct Item {
-    pub name: String,
-    pub cost: u64,
-}
-
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Champion {
     pub name: String,
     pub title: String,
     pub range: String,
 }
 
+#[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize)]
+pub enum Map {
+    SummonersRift,
+    HowlingAbyss,
+    TwistedTreeline,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ItemList {
+    boots: Vec<Item>,
+    common: Vec<Item>,
+    ranged: Vec<Item>,
+    melee: Vec<Item>,
+    jungle: Vec<Item>,
+    support: Vec<Item>,
+    classic: Vec<Item>,
+    rift: Vec<Item>,
+    abyss: Vec<Item>,
+    treeline: Vec<Item>,
+    featured: Vec<Item>,
+    // incomplete: Vec<Item>,
+    special: SpecialItemList,
+    trinket: Vec<Item>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SpecialItemList {
+    #[serde(rename = "Ornn")]
+    ornn: Vec<Item>,
+    #[serde(rename = "Viktor")]
+    viktor: Vec<Item>,
+    other: Vec<Item>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Item {
+    pub name: String,
+    pub cost: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct RuneList {
+    precision: RuneTree,
+    domination: RuneTree,
+    sorcery: RuneTree,
+    resolve: RuneTree,
+    inspiration: RuneTree,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RuneTree {
+    keystone: Vec<String>,
+    tier1: Vec<String>,
+    tier2: Vec<String>,
+    tier3: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PrimaryTree {
     pub name: String,
     pub keystone: String,
@@ -47,16 +94,41 @@ pub struct PrimaryTree {
     pub tier3: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SecondaryTree {
     pub name: String,
     pub runes: (String, String),
 }
 
-#[derive(PartialEq)]
-pub enum Map {
-    SummonersRift,
-    HowlingAbyss,
-    TwistedTreeline,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SpellList {
+    common: Vec<String>,
+    classic: Vec<String>,
+    abyss: Vec<String>,
+}
+
+impl ::std::str::FromStr for Map {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "rift" => Ok(Map::SummonersRift),
+            "abyss" => Ok(Map::HowlingAbyss),
+            "treeline" => Ok(Map::TwistedTreeline),
+            _ => Err(format_err!("unrecognised map: {}", s))
+        }
+    }
+}
+
+impl fmt::Display for Map {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Map::*;
+
+        match *self {
+            SummonersRift => write!(f, "Summoner's Rift"),
+            HowlingAbyss => write!(f, "Howling Abyss"),
+            TwistedTreeline => write!(f, "Twisted Treeline"),
+        }
+    }
 }
 
 impl std::clone::Clone for Item {
@@ -122,18 +194,6 @@ impl fmt::Display for SecondaryTree {
     }
 }
 
-impl fmt::Display for Map {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Map::*;
-
-        match *self {
-            SummonersRift => write!(f, "Summoner's Rift"),
-            HowlingAbyss => write!(f, "Howling Abyss"),
-            TwistedTreeline => write!(f, "Twisted Treeline"),
-        }
-    }
-}
-
 impl std::convert::From<Map> for String {
     fn from(m: Map) -> Self {
         use Map::*;
@@ -146,83 +206,51 @@ impl std::convert::From<Map> for String {
     }
 }
 
-pub fn random_champion() -> Result<Champion> {
-    let json = open_json("champions").chain_err(|| "Failed to open champions file.")?;
-    let v = json.as_array().chain_err(|| "Not an array: champions")?;
+pub fn random_champion() -> Result<Champion, Error> {
+    let v: Vec<Champion> = serde_json::from_str(&open_file("champions")?)?;
     let mut rng = rand::thread_rng();
 
-    let champ = rng.choose(v)
-        .chain_err(|| "Unable to choose a random champion")?;
-
-    Ok(Champion {
-        name: String::from(champ["name"].as_str().unwrap()),
-        title: String::from(champ["title"].as_str().unwrap()),
-        range: String::from(champ["range"].as_str().unwrap()),
-    })
+    rng.choose(&v).map(|s| s.clone()).ok_or(failure::err_msg("Unable to choose a random champion"))
 }
 
 /// Returns a list of random items guarenteed to be different.
-pub fn random_items(map: &Map, number: usize, extra: &String, include_jungle: bool) -> Result<Vec<Item>> {
-    let json = open_json("items").chain_err(|| "Failed to open items file.")?;
+pub fn random_items(map: Map, number: usize, extra: &str, include_jungle: bool) -> Result<Vec<Item>, Error> {
+    let all_items: ItemList = serde_json::from_str(&open_file("items")?)?;
 
-    macro_rules! json_key {
-        ($key:expr) => (json[$key].as_array().chain_err(||format!("Not an array: {}", $key))?);
+    let mut item_pool = Vec::new();
+    item_pool.extend(all_items.common);
+    match extra {
+        "melee" => item_pool.extend(all_items.melee),
+        "ranged" => item_pool.extend(all_items.ranged),
+        "hybrid" => {
+            item_pool.extend(all_items.melee);
+            item_pool.extend(all_items.ranged);
+        }
+        _ => ()
     }
-    macro_rules! merge {
-        ($from:expr, $into:ident) => (for i in $from {$into.push(i)});
-    }
 
-    let list = match map {
-        m @ &Map::SummonersRift | m @ &Map::TwistedTreeline => {
-            let mer = if m == &Map::SummonersRift {
-                "rift"
-            } else {
-                "treeline"
-            };
+    match map {
+        m @ Map::SummonersRift | m @ Map::TwistedTreeline => {
+            item_pool.extend(all_items.classic);
 
-            let mut new_con = Vec::new();
-            merge!(json_key!("common"), new_con);
-            merge!(json_key!("classic"), new_con);
-            merge!(json_key!(mer), new_con);
-
-            match extra.as_str() {
-                "melee" => merge!(json_key!("melee"), new_con),
-                "ranged" => merge!(json_key!("ranged"), new_con),
-                "hybrid" => {
-                    merge!(json_key!("melee"), new_con);
-                    merge!(json_key!("ranged"), new_con);
-                },
+            match m {
+                Map::SummonersRift => item_pool.extend(all_items.rift),
+                Map::TwistedTreeline => item_pool.extend(all_items.treeline),
                 _ => ()
             }
 
             let mut rng = rand::thread_rng();
-            new_con.push(rng.choose(json_key!("support").as_slice()).unwrap());
+            item_pool.push(rng.choose(&all_items.support).unwrap().clone());
             if include_jungle {
-                new_con.push(rng.choose(json_key!("jungle").as_slice()).unwrap());
+                item_pool.push(rng.choose(&all_items.jungle).unwrap().clone());
             }
-
-            new_con
         }
-        &Map::HowlingAbyss => {
-            let mut new_con = Vec::new();
-            merge!(json_key!("common"), new_con);
-            merge!(json_key!("abyss"), new_con);
-
-            match extra.as_str() {
-                "melee" => merge!(json_key!("melee"), new_con),
-                "ranged" => merge!(json_key!("ranged"), new_con),
-                "hybrid" => {
-                    merge!(json_key!("melee"), new_con);
-                    merge!(json_key!("ranged"), new_con);
-                },
-                _ => ()
-            }
-
-            new_con
+        Map::HowlingAbyss => {
+            item_pool.extend(all_items.abyss);
         }
     };
 
-    let range = Range::new(0, list.len() - 1);
+    let range = Range::new(0, item_pool.len() - 1);
     let mut rng = rand::thread_rng();
 
     let mut items = Vec::new();
@@ -230,11 +258,7 @@ pub fn random_items(map: &Map, number: usize, extra: &String, include_jungle: bo
     while items.len() < number {
         let i = range.ind_sample(&mut rng);
         if !seen.contains(&i) {
-            let k = list[i];
-            items.push(Item {
-                name: String::from(k["name"].as_str().chain_err(|| "Not a string")?),
-                cost: k["cost"].as_u64().chain_err(|| "Not a u64")?,
-            });
+            items.push(item_pool[i].clone());
             seen.push(i);
         }
     }
@@ -243,153 +267,132 @@ pub fn random_items(map: &Map, number: usize, extra: &String, include_jungle: bo
 }
 
 /// Returns a single random item from a given category. Used primarily for boots, jungle, and special items.
-pub fn random_item_from_category(cat: &'static str) -> Result<Item> {
-    if cat == "special" || cat == "Viktor" || cat == "Ornn" {
-        return Err("Special items aren't supported. Try `random_special_item()`".into())
-    }
-
-    let json = open_json("items").chain_err(|| "Failed to open items file.")?;
-    let list = json[cat]
-        .as_array()
-        .chain_err(|| "Category doesn't exist")?;
-
-    let mut rng = rand::thread_rng();
-    let item = rng.choose(list.as_slice())
-        .chain_err(|| "Nothing to choose")?;
-    Ok(Item {
-        name: String::from(item["name"].as_str().chain_err(|| "Not a string")?),
-        cost: item["cost"].as_u64().chain_err(|| "Not a u64")?,
-    })
-}
-
-pub fn random_item_from_special(cat: &'static str) -> Result<Item> {
-    let json = open_json("items").chain_err(|| "Failed to open items file.")?;
-    let list = json["special"][cat]
-        .as_array()
-        .chain_err(|| "Category doesn't exist")?;
+pub fn random_item_from_category(cat: &str) -> Result<Item, Error> {
+    let items: ItemList = serde_json::from_str(&open_file("items")?)?;
+    let sub = match cat {
+        "boots" => items.boots,
+        "common" => items.common,
+        "ranged" => items.ranged,
+        "melee" => items.melee,
+        "jungle" => items.jungle,
+        "support" => items.support,
+        "classic" => items.classic,
+        "rift" => items.rift,
+        "abyss" => items.abyss,
+        "treeline" => items.treeline,
+        "featured" => items.featured,
+        "Ornn" | "ornn" => items.special.ornn,
+        "Viktor" | "viktor" => items.special.viktor,
+        "other" => items.special.other,
+        _ => Vec::new(),
+    };
 
     let mut rng = rand::thread_rng();
-    let item = rng.choose(list.as_slice())
-        .chain_err(|| "Nothing to choose")?;
-    Ok(Item {
-        name: String::from(item["name"].as_str().chain_err(|| "Not a string")?),
-        cost: item["cost"].as_u64().chain_err(|| "Not a u64")?,
-    })
+    Ok(rng.choose(&sub).unwrap().clone())
 }
 
 /// Returns a primary and secondary rune tree.
-pub fn random_rune_page() -> Result<(PrimaryTree, SecondaryTree)> {
-    let json = open_json("runes").chain_err(|| "Failed to open runes file.")?;
+pub fn random_rune_page() -> Result<(PrimaryTree, SecondaryTree), Error> {
+    let runes: RuneList = serde_json::from_str(&open_file("runes")?)?;
     let mut rng = rand::thread_rng();
 
-    let _keys: Vec<_> = json.as_object().unwrap().keys().collect();
-    let primary_path = rng.choose(_keys.as_slice()).unwrap();
-    let mut secondary_path = rng.choose(_keys.as_slice()).unwrap();
-    while primary_path == secondary_path {
-        secondary_path = rng.choose(_keys.as_slice()).unwrap();
+    let path_names = ["Precision", "Domination", "Sorcery", "Resolve", "Inspiration"];
+    let path_arr = [runes.precision, runes.domination,
+                    runes.sorcery, runes.resolve, runes.inspiration];
+
+    // Get the rune paths
+    let r = Range::new(0, 5);
+    let primary_ix = r.ind_sample(&mut rng);
+    let secondary_ix = {
+        let mut t = r.ind_sample(&mut rng);
+        while t == primary_ix {
+            t = r.ind_sample(&mut rng);
+        }
+        t
+    };
+
+    let primary_path = &path_arr[primary_ix];
+    let secondary_path = &path_arr[secondary_ix];
+
+    // Determine the secondary rune path tiers
+    let r = Range::new(1, 4);
+    let sec_ai = r.ind_sample(&mut rng);
+    let sec_bi = {
+        let mut t = r.ind_sample(&mut rng);
+        while t == sec_ai {
+            t = r.ind_sample(&mut rng);
+        }
+        t
+    };
+
+    macro_rules! tier {
+        ($ix:ident) => (match $ix {
+            1 => &secondary_path.tier1,
+            2 => &secondary_path.tier2,
+            3 => &secondary_path.tier3,
+            _ => &secondary_path.tier1,
+        })
     }
 
-    let mut rune_stack = Vec::new();
-    for tier in json[primary_path].as_object().unwrap().values() {
-        rune_stack.push(tier[rng.gen_range(0, 2)].clone());
-    }
+    let sec_a = tier!(sec_ai);
+    let sec_b = tier!(sec_bi);
 
-    let mut _i = [0, 1, 2];
-    rng.shuffle(&mut _i);
-
-    let _sec: Vec<_> = json[secondary_path].as_object().unwrap().values().collect();
-    rune_stack.push(_sec[_i[0]][rng.gen_range(0, 2)].clone());
-    rune_stack.push(_sec[_i[1]][rng.gen_range(0, 2)].clone());
-
-    let mut runes = rune_stack.iter().map(|r| String::from(r.as_str().unwrap()));
-    macro_rules! pop_rune {
-        () => (runes.next().chain_err(|| "Not enough runes added")?);
-    }
-
+    // Finalise
     Ok((
         PrimaryTree {
-            name: String::from(primary_path.as_str()),
-            keystone: pop_rune!(),
-            tier1: pop_rune!(),
-            tier2: pop_rune!(),
-            tier3: pop_rune!(),
+            name: path_names[primary_ix].to_string(),
+            keystone: rng.choose(&primary_path.keystone).ok_or(failure::err_msg("Empty keystone?"))?.to_string(),
+            tier1: rng.choose(&primary_path.tier1).ok_or(failure::err_msg("Empty tier1?"))?.to_string(),
+            tier2: rng.choose(&primary_path.tier2).ok_or(failure::err_msg("Empty tier2?"))?.to_string(),
+            tier3: rng.choose(&primary_path.tier3).ok_or(failure::err_msg("Empty tier3?"))?.to_string(),
         },
         SecondaryTree {
-            name: String::from(secondary_path.as_str()),
-            runes: (pop_rune!(), pop_rune!()),
+            name: path_names[secondary_ix].to_string(),
+            runes: (
+                rng.choose(sec_a).ok_or(failure::err_msg("Empty secondary?"))?.to_string(),
+                rng.choose(sec_b).ok_or(failure::err_msg("Empty secondary?"))?.to_string(),
+            )
         },
     ))
 }
 
-fn open_json(name: &'static str) -> Result<json::Value> {
+fn open_file(name: &'static str) -> Result<String, Error> {
     let _path = &[BASE_PATH, "resources/", name, ".json"].concat();
     let path = Path::new(_path);
-    let file = File::open(path).chain_err(|| "Unable to open file.")?;
+    let file = File::open(path).context("Unable to open file.")?;
 
     let mut reader = BufReader::new(file);
     let mut buf = String::new();
 
     reader.read_to_string(&mut buf)?;
-    let j: json::Value = json::from_str(&buf).chain_err(|| "Failed to parse JSON.")?;
-    Ok(j)
+    Ok(buf)
 }
 
-pub fn get_champion(name: String) -> Result<Champion> {
-    let json = open_json("champions").chain_err(|| "Failed to open champions file.")?;
-    let v = json.as_array()
-        .chain_err(|| "Not an array: champions")?
-        .iter();
+pub fn get_champion(name: &str) -> Result<Champion, Error> {
+    let champions: Vec<Champion> = serde_json::from_str(&open_file("champions")?)?;
 
-    for champ in v {
-        if champ["name"] == name {
-            return Ok(Champion {
-                name: String::from(name),
-                title: String::from(champ["title"].as_str().unwrap()),
-                range: String::from(champ["range"].as_str().unwrap())
-            });
+    for champ in champions {
+        if champ.name == name {
+            return Ok(champ);
         }
     }
-    Err(format!("No champion named {}", name).into())
+    return Err(failure::err_msg("Unable to find champion"))
 }
 
-pub fn random_summoner_spell(map: &Map) -> Result<String> {
-    let json = open_json("spells").chain_err(|| "Failed to open spells file.")?;
+pub fn random_summoner_spell(map: Map) -> Result<String, Error> {
+    let spells: SpellList = serde_json::from_str(&open_file("spells")?)?;
 
-    macro_rules! json_key {
-        ($key:expr) => (json[$key].as_array().chain_err(||format!("Not an array: {}", $key))?);
-    }
-    macro_rules! merge {
-        ($from:expr, $into:ident) => (for i in $from {$into.push(i)});
-    }
-
-    let list = match *map {
+    let mut list = Vec::new();
+    list.extend(spells.common);
+    match map {
         Map::SummonersRift | Map::TwistedTreeline => {
-            let mut new_con = Vec::new();
-            merge!(json_key!("common"), new_con);
-            merge!(json_key!("classic"), new_con);
-            new_con
+            list.extend(spells.classic);
         }
         Map::HowlingAbyss => {
-            let mut new_con = Vec::new();
-            merge!(json_key!("common"), new_con);
-            merge!(json_key!("abyss"), new_con);
-            new_con
+            list.extend(spells.abyss);
         }
     };
 
     let mut rng = rand::thread_rng();
-    match rng.choose(list.as_slice()) {
-        Some(s) => Ok(String::from(s.as_str().chain_err(|| "Not a string")?)),
-        None => Err("Nothing to choose from".into()),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        panic!();
-    }
+    rng.choose(&list).map(|s| s.clone()).ok_or(failure::err_msg("No spell found"))
 }

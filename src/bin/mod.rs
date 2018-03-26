@@ -1,149 +1,62 @@
 #[macro_use]
-extern crate clap;
+extern crate structopt_derive;
+extern crate structopt;
 extern crate rand;
 extern crate ub;
-#[macro_use]
-extern crate error_chain;
+extern crate failure;
 
 use rand::Rng;
-
-mod app {
-    use clap::{App, Arg};
-
-    // Input args for: map, champion
-    // Flags for: force jungling, runes, skill order
-    pub fn app() -> App<'static, 'static> {
-        App::new(crate_name!())
-            .version(crate_version!())
-            .author(crate_version!())
-            .about(crate_description!())
-            .arg(
-                Arg::with_name("map")
-                    .short("m")
-                    .long("map")
-                    .help(
-                        "Map to play on \
-                         Values: rift, abyss, treeline",
-                    )
-                    .takes_value(true),
-            )
-            .arg(
-                Arg::with_name("champion")
-                    .short("c")
-                    .long("champion")
-                    .help("Use a specific champion (case sensitive)")
-                    .takes_value(true),
-            )
-            .arg(
-                Arg::with_name("jungle")
-                    .short("j")
-                    .long("force_jungle")
-                    .help("Force the build to include smite and a jungle item"),
-            )
-            .arg(
-                Arg::with_name("runes")
-                    .short("r")
-                    .long("gen_runes")
-                    .help("Generate a rune page (default)"),
-            )
-            .arg(
-                Arg::with_name("no_runes")
-                    .short("R")
-                    .long("no_gen_runes")
-                    .help("Don't generate a rune page"),
-            )
-            .arg(
-                Arg::with_name("skills")
-                    .short("s")
-                    .long("skills")
-                    .help("Length of skill max order (default 1)")
-                    .takes_value(true)
-            )
-            .arg(
-                Arg::with_name("no_skill")
-                    .short("S")
-                    .long("no_skill_order")
-                    .help("Don't generate a skill order"),
-            )
-            .arg(
-                Arg::with_name("trinket")
-                    .short("t")
-                    .long("trinket")
-                    .help("Generate a trinket"),
-            )
-    }
-}
-
-mod err {
-    error_chain! {
-        foreign_links {
-            UbLib(::ub::err::Error);
-            Int(::std::num::ParseIntError);
-        }
-        errors {}
-    }
-}
+use failure::{Error, ResultExt};
+use structopt::StructOpt;
 
 use ub::*;
-use err::*;
 
-macro_rules! summoner {
-    ($map:ident) => (random_summoner_spell(&$map).chain_err(|| "Unable to get summoner spell")?);
+mod app {
+    use ub::Map;
+
+    #[derive(StructOpt, Debug)]
+    #[structopt(name = "ub")]
+    pub struct App {
+        #[structopt(short = "m", long = "map", help = "Map to play on", default_value = "rift")]
+        pub map: Map,
+        #[structopt(short = "c", long = "champion", help = "Use a specific champion (case sensitive)")]
+        pub champion: Option<String>,
+        #[structopt(short = "j", long = "force_jungle",
+                    help = "Force the build to include smite and a jungle item")]
+        pub jungle: bool,
+        #[structopt(short = "R", long = "no_runes", help = "Don't generate a rune page")]
+        pub no_runes: bool,
+        #[structopt(short = "s", long = "skills", help = "Length of skill max order", default_value = "1")]
+        pub skills: f64,
+        #[structopt(short = "t", long = "trinket", help = "Generate a trinket")]
+        pub trinket: bool,
+    }
 }
 
-macro_rules! item_from {
-    ($cat:expr) => (random_item_from_category($cat).chain_err(|| ["Unable to get ", $cat].concat())?);
-}
 
-macro_rules! special {
-    ($cat:expr) => (random_item_from_special($cat).chain_err(|| ["Unable to get ", $cat, " item"].concat())?);
-}
-
-macro_rules! random_slice {
-    ($map:ident, $n:expr, $extra:expr, $jung:expr) => (random_items(&$map, $n, $extra, $jung).chain_err(|| "Unable to get random items")?.as_slice());
-}
-
-fn run() -> Result<()> {
-    let matches = app::app().get_matches();
-
-    // Determine map. Default to Summoner's Rift.
-    let map = if matches.is_present("map") {
-        match matches.value_of("map") {
-            Some("rift") => Map::SummonersRift,
-            Some("abyss") => Map::HowlingAbyss,
-            Some("treeline") => Map::TwistedTreeline,
-            _ => {
-                println!(
-                    "Invalid value given for map. \
-                     See the help for valid values."
-                );
-                std::process::exit(1);
-            }
-        }
-    } else {
-        Map::SummonersRift
-    };
+fn run() -> Result<(), Error> {
+    let args = app::App::from_args();
 
     // Determine spells.
-    let _spell1 = if matches.is_present("jungle") {
+    let _spell1 = if args.jungle {
         String::from("Smite")
     } else {
-        summoner!(map)
+        random_summoner_spell(args.map)?
     };
     let spells =  {
-        let mut _spell2 = summoner!(map);
+        let mut _spell2 = random_summoner_spell(args.map)?;
         while _spell1 == _spell2 {
-            _spell2 = summoner!(map);
+            _spell2 = random_summoner_spell(args.map)?;
         }
         (_spell1, _spell2)
     };
 
-    let champ = if let Some(c) = matches.value_of("champion") {
-        get_champion(String::from(c))
+    let champ = if let Some(c) = args.champion {
+        get_champion(&c)
     } else {
         random_champion()
-    } .chain_err(|| "Invalid value for champion. \
-                     Remember that it's case sensitive.")?;
+    }.context("Invalid value for champion. \
+               Remember that it's case sensitive.")?;
 
     let mut items = Vec::new();
 
@@ -151,27 +64,24 @@ fn run() -> Result<()> {
     match champ.name.as_str() {
         "Casseopeia" => (),
         "Viktor" => {
-            items.push(item_from!("boots"));
-            items.push(special!("Viktor"));
+            items.push(random_item_from_category("boots")?);
+            items.push(random_item_from_category("Viktor")?);
         },
         "Ornn" => {
-            items.push(item_from!("boots"));
-            items.push(special!("Ornn"));
+            items.push(random_item_from_category("boots")?);
+            items.push(random_item_from_category("Ornn")?);
         },
-        _ => items.push(item_from!("boots"))
+        _ => items.push(random_item_from_category("boots")?)
     }
 
     let rem_items = 6 - items.len();
-    if matches.is_present("jungle") {
-        items.push(item_from!("jungle"));
-        items.extend_from_slice(
-            random_slice!(map, rem_items - 1, &champ.range, false));
+    if args.jungle {
+        items.push(random_item_from_category("jungle")?);
+        items.extend(random_items(args.map, rem_items - 1, &champ.range, false)?);
     } else if spells.0 == "Smite" || spells.1 == "Smite" {
-        items.extend_from_slice(
-            random_slice!(map, rem_items, &champ.range, true));
+        items.extend(random_items(args.map, rem_items, &champ.range, true)?);
     } else {
-        items.extend_from_slice(
-            random_slice!(map, rem_items, &champ.range, false));
+        items.extend(random_items(args.map, rem_items, &champ.range, false)?);
     }
 
     // Print it all.
@@ -185,13 +95,13 @@ fn run() -> Result<()> {
  {champ: ^78}
 
   Map: {map: >25}    Summoners: {spells: >31}",
-                map = String::from(map),
-                champ = String::from(champ.clone()),
+                map = args.map.to_string(),
+                champ = champ.to_string(),
                 spells = spells.0 + ", " + &spells.1};
     println!();
 
     // Split 36 and 42.
-    if !matches.is_present("no_runes") {
+    if !args.no_runes {
         let (pri, sec) = random_rune_page().expect("Unable to get rune page");
 
         // Bold the headers on Unix.
@@ -265,8 +175,8 @@ fn run() -> Result<()> {
 
     let cost = items.iter().fold(0, |acc, i| acc + i.cost);
 
-    if matches.is_present("trinket") {
-        println!("  {}", item_from!("trinket"));
+    if args.trinket {
+        println!("  {}", random_item_from_category("trinket")?);
     }
 
     println!();
@@ -275,38 +185,32 @@ fn run() -> Result<()> {
         cost = cost.to_string() + " gold"
     );
 
-    if !matches.is_present("no_skill") {
+    if true {
         let mut rng = rand::thread_rng();
 
         let mut skills = if champ.name.as_str() == "Udyr" {
             vec!('Q', 'W', 'E', 'R')
         } else if champ.name.as_str() == "Jayce" {
             vec!('Q', 'W', 'E')
-        } else if matches.value_of("skills") == Some("4") {
+        } else if args.skills == 4. {
             vec!('Q', 'W', 'E', 'R')
         } else {
             vec!('Q', 'W', 'E')
         };
 
-        let mut num_skills = if matches.is_present("skills") {
-            let _n = matches.value_of("skills").unwrap().parse()?;
-            if _n > 4 || _n < 0 { 1 } else { _n }
-        } else {
-            1
-        };
-
         rng.shuffle(&mut skills.as_mut_slice());
 
         let mut order = String::new();
-        for (ix, s) in skills.iter().enumerate() {
-            if num_skills == 0 {
+        let mut ix = args.skills;
+        for (i, s) in skills.iter().enumerate() {
+            if ix == 0. {
                 break
             }
             order.push(*s);
-            if ix < skills.len() - 1 && num_skills > 1 {
+            if i < skills.len() - 1 && ix > 1. {
                 order.push_str(" -> ");
             }
-            num_skills -= 1;
+            ix -= 1.;
         }
 
         if order.len() == 1 {
@@ -321,4 +225,12 @@ fn run() -> Result<()> {
     Ok(())
 }
 
-quick_main!(run);
+fn main() {
+    match run() {
+        Ok(_) => (),
+        Err(e) => {
+            println!("Fatal error: {}", e);
+            ::std::process::exit(1);
+        }
+    }
+}
